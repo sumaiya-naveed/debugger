@@ -1,0 +1,34 @@
+{
+  "name": "ml-debugger-agent",
+  "version": "0.1.0",
+  "agents": [
+    {
+      "id": "training-instability",
+      "name": "Training Instability Agent",
+      "description": "Watches loss curves and gradients for NaN/Inf, exploding/vanishing gradients, dead ReLUs, or a stuck loss plateau, and suggests fixes (lower LR, gradient clipping, better init).",
+      "capabilities": ["loss-curve-monitoring", "gradient-analysis", "instability-detection"],
+      "priority": "high"
+    },
+    {
+      "id": "data-pipeline",
+      "name": "Data Pipeline Agent",
+      "description": "Inspects the dataset/dataloader for label leakage, class imbalance, wrong normalization, mismatched train/test distributions, corrupted samples.",
+      "capabilities": ["dataset-inspection", "imbalance-detection", "normalization-check"],
+      "priority": "medium"
+    },
+    {
+      "id": "shape-dtype",
+      "name": "Shape/Dtype Agent",
+      "description": "Statically or dynamically traces tensor shapes and dtypes through the model to catch mismatches before/during runtime.",
+      "capabilities": ["shape-tracing", "dtype-validation", "runtime-monitoring"],
+      "priority": "high"
+    },
+    {
+      "id": "hyperparameter-sanity",
+      "name": "Hyperparameter Sanity Agent",
+      "description": "Flags suspicious configs (LR too high/low for the optimizer, batch size vs. LR scaling issues, incompatible scheduler settings).",
+      "capabilities": ["config-validation", "lr-scaling-check", "scheduler-validation"],
+      "priority": "medium"
+    }
+  ]
+}
