@@ -1,42 +1,28 @@
 ---
 name: "numpy-serialization"
-description: "Detects and resolves NumPy serialization errors, identifying the root cause and suggesting the appropriate save/load pattern for the use case."
+description: "Detects NumPy save/load errors and suggests the binary format fix pattern."
 role: "numpy-serialization"
-capabilities: ["error-detection", "format-suggestion", "code-snippet-generation"]
+capabilities: ["np-save-load-detection"]
 priority: "medium"
 ---
 
 # numpy-serialization Skill
 
 ## What it does
-
-- Detects errors when saving or loading NumPy arrays, including `ValueError: setting an array element with a incompatible shape`, `TypeError: cannot serialize object type`, and pickle errors
-- Identifies misuse of serialization functions (`np.save`, `np.load`, `np.savez`, `pickle`, `json`)
-- Determines the most reliable format for the intended use case (local disk, network transfer, long-term storage)
+- Detects `np.save`/`np.load`/`np.savez` errors including shape/dtype mismatches
 
 ## When to provoke it
+- User calls `np.save`, `np.load`, or `np.savez` and encounters an error
+- Error message mentions `dtype`, `shape`, or `truncated`
 
-- User posts an error while calling `np.save`, `np.load`, `np.savez`, or pickling a NumPy array
-- The error message mentions `Pickle`, `dtype`, `shape`, or `truncated`
-- When the user wants to store arrays across Python versions or platforms
-
-## Output of the skill
-
-- A table of the encountered error, its probable cause, and a suggested code change
-- Recommended serialization method:
-  - `np.save` / `np.load` for binary NumPy format (`.npy`/`.npz`)
-  - `np.savez_compressed` for compressed multi-array files
-  - `json` conversion via `np.array.tolist()` for human-readable needs
-  - `pickle` only for internal Python use, with a warning about version compatibility
-- A short code snippet demonstrating the suggested save/load pattern
-- If no error is present, the skill returns "No serialization issues detected – array handling looks correct."
+## Output
+- **table**: error → cause → code change
+- **method**: `np.save` / `np.load` for `.npy`/`.npz`
+- **snippet**: save/load pattern demonstration
 
 ## Example
-
 ```python
 import numpy as np
-
-# Correct pattern for binary NumPy format
 array = np.array([1, 2, 3, 4, 5])
 np.save("array.npy", array)
 loaded = np.load("array.npy.npy")
