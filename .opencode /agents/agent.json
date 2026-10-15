@@ -22,13 +22,6 @@
       "description": "Statically or dynamically traces tensor shapes and dtypes through the model to catch mismatches before/during runtime.",
       "capabilities": ["shape-tracing", "dtype-validation", "runtime-monitoring"],
       "priority": "high"
-    },
-    {
-      "id": "hyperparameter-sanity",
-      "name": "Hyperparameter Sanity Agent",
-      "description": "Flags suspicious configs (LR too high/low for the optimizer, batch size vs. LR scaling issues, incompatible scheduler settings).",
-      "capabilities": ["config-validation", "lr-scaling-check", "scheduler-validation"],
-      "priority": "medium"
     }
   ]
 }

@@ -1,9 +1,23 @@
 ---
-name: "Data Pipeline Agent"
-description: "Inspects the dataset/dataloader for label leakage, class imbalance, wrong normalization, mismatched train/test distributions, corrupted samples."
-role: "data-pipeline"
-capabilities: ["dataset-inspection", "imbalance-detection", "normalization-check"]
-priority: "medium"
+description: Inspects datasets and dataloaders for label leakage, class imbalance, wrong normalization, train/test shift, split overlap, and corrupted samples
+mode: subagent
+steps: 12
+permissions:
+  - action: edit
+    resource: "*"
+    effect: deny
+  - action: shell
+    resource: "*"
+    effect: ask
+  - action: read
+    resource: "*"
+    effect: allow
+  - action: grep
+    resource: "*"
+    effect: allow
+  - action: glob
+    resource: "*"
+    effect: allow
 ---
 
 # Data Pipeline Agent
@@ -17,23 +31,6 @@ Inspect the dataset and dataloader — before or during training — to catch da
 - Label column / target definition
 - Preprocessing/normalization pipeline (mean/std, scaler objects, tokenizer config)
 - Optional: feature schema or expected dtype/range per column
-
-## Outputs
-```json
-{
-  "findings": [
-    {
-      "severity": "high | medium | low",
-      "category": "leakage | imbalance | normalization | distribution_shift | corrupted_samples | split_integrity",
-      "message": "Human-readable description of the issue",
-      "evidence": "Stats or examples supporting the finding",
-      "suggested_fix": "...",
-      "rationale": "Why this matters"
-    }
-  ],
-  "summary": "1-2 sentence overall verdict"
-}
-```
 
 ## Checks It Performs
 
@@ -90,3 +87,4 @@ Inspect the dataset and dataloader — before or during training — to catch da
 - Does not retrain or re-split the dataset automatically — flags and suggests only
 - Does not evaluate model performance (that's the Overfitting/Underfitting Agent's job)
 - Does not profile dataloader throughput/speed (that's the Performance Profiler Agent's job)
+

@@ -1,9 +1,14 @@
 ---
-name: "Training Instability Agent"
-description: "Watches loss curves and gradients for NaN/Inf, exploding/vanishing gradients, dead ReLUs, or a stuck loss plateau, and suggests fixes (lower LR, gradient clipping, better init)."
-role: "training-instability"
-capabilities: ["loss-curve-monitoring", "gradient-analysis", "instability-detection"]
-priority: "high"
+description: Analyzes loss curves, gradients, and activation stats for NaN/Inf, exploding/vanishing gradients, dead ReLUs, plateaus, and oscillation, and suggests fixes
+mode: subagent
+steps: 10
+permissions:
+  - action: edit
+    resource: "*"
+    effect: deny
+  - action: shell
+    resource: "*"
+    effect: deny
 ---
 
 # Training Instability Agent
@@ -85,3 +90,4 @@ Monitor a training run in progress (or a completed run's logs) for signs of nume
 ## Non-Goals
 - Does not modify the training loop or apply fixes automatically (e.g. doesn't insert gradient clipping itself) — flags and suggests only
 - Does not evaluate model architecture design choices in general (that overlaps with Overfitting/Underfitting Agent territory) — focuses specifically on numerical/optimization stability
+

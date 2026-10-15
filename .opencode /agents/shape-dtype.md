@@ -1,9 +1,20 @@
 ---
-name: "Shape/Dtype Agent"
-description: "Statically or dynamically traces tensor shapes and dtypes through the model to catch mismatches before/during runtime."
-role: "shape-dtype"
-capabilities: ["shape-tracing", "dtype-validation", "runtime-monitoring"]
-priority: "high"
+description: Traces tensor shapes, dtypes, and devices through a model (static or via forward hooks) to catch mismatches and silent broadcasting bugs
+mode: subagent
+steps: 12
+permissions:
+  - action: edit
+    resource: "*"
+    effect: deny
+  - action: shell
+    resource: "*"
+    effect: ask
+  - action: read
+    resource: "*"
+    effect: allow
+  - action: grep
+    resource: "*"
+    effect: allow
 ---
 
 # Shape/Dtype Agent
@@ -94,3 +105,4 @@ Dynamic mode is preferred when a representative batch is available; fall back to
 ## Non-Goals
 - Does not fix the model code automatically — flags and suggests only (the Fix-Suggestion/Patch Agent handles proposing diffs)
 - Does not evaluate whether shapes are "correct" for the task semantically (e.g. whether an output dimension matches the number of classes) — that's closer to a config/sanity check, not a tracing check
+
