@@ -8,7 +8,7 @@ permissions:
     effect: deny
   - action: shell
     resource: "*"
-    effect: ask
+    effect: allow
   - action: read
     resource: "*"
     effect: allow
@@ -21,6 +21,9 @@ permissions:
 
 ## Purpose
 Trace tensors as they flow through the model — either statically (from code/graph inspection) or dynamically (via hooks on a real forward pass) — to catch shape mismatches, dtype conflicts, and device mismatches before they crash training or, worse, silently broadcast into wrong results.
+
+## Config
+- `steps` is this agent's investigation step budget for the diagnostic sweep.
 
 ## Inputs
 - Model definition (PyTorch `nn.Module`, TF/Keras model, or equivalent)
@@ -98,11 +101,11 @@ Trace tensors as they flow through the model — either statically (from code/gr
 Dynamic mode is preferred when a representative batch is available; fall back to static mode for pre-flight checks before any data is loaded.
 
 ## Integration Notes
-- Should run early, ideally as part of a pre-flight check alongside the Hyperparameter Sanity Agent, since shape/dtype bugs are usually blocking (training can't start at all).
-- When invoked reactively from a traceback (via the Error Triage Agent), narrow the trace to just the layers near the failure point rather than re-tracing the whole model, for speed.
-- Findings should include the full shape trace up to the failure point so the Explainer Agent can show the user exactly where the pipeline diverged from expectations.
+- Should run early, ideally as part of a pre-flight check alongside the primary Work Agent's diagnostic flow, since shape/dtype bugs are usually blocking (training can't start at all).
+- When invoked reactively from a traceback (via the primary Work Agent), narrow the trace to just the layers near the failure point rather than re-tracing the whole model, for speed.
+- Findings should include the full shape trace up to the failure point so the Work Agent can show the user exactly where the pipeline diverged from expectations.
 
 ## Non-Goals
-- Does not fix the model code automatically — flags and suggests only (the Fix-Suggestion/Patch Agent handles proposing diffs)
+- Does not fix the model code automatically — flags and suggests only (the primary Work Agent handles fix suggestion and routing)
 - Does not evaluate whether shapes are "correct" for the task semantically (e.g. whether an output dimension matches the number of classes) — that's closer to a config/sanity check, not a tracing check
 

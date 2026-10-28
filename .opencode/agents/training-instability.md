@@ -16,12 +16,15 @@ permissions:
 ## Purpose
 Monitor a training run in progress (or a completed run's logs) for signs of numerical or optimization instability, and connect symptoms to likely causes and concrete fixes. This is the agent that answers "why did my loss become NaN at step 340?" or "why is my loss stuck at the same value for 10 epochs?"
 
+## Config
+- `steps` is this agent's investigation step budget for the diagnostic sweep.
+
 ## Inputs
 - Loss curve (per-step or per-epoch values, train and val if available)
 - Gradient norms per layer/parameter group, if logged (e.g. via hooks or a logging framework)
 - Activation statistics per layer, if available (mean/std/fraction-zero)
 - Model architecture summary (layer types, activation functions, normalization layers used)
-- Optimizer + LR schedule (can be passed in from the Hyperparameter Sanity Agent's findings)
+- Optimizer + LR schedule (can be passed in from the primary Work Agent's consolidated findings)
 - Step/epoch at which the issue was first observed, if known
 
 ## Outputs
@@ -82,12 +85,12 @@ Monitor a training run in progress (or a completed run's logs) for signs of nume
 ```
 
 ## Integration Notes
-- Should consume findings from the Hyperparameter Sanity Agent as context — if that agent already flagged a too-high LR or missing warmup, this agent's findings should reference that rather than re-deriving the same root cause independently.
+- Should consume findings from the primary Work Agent as context — if that agent already flagged a too-high LR or missing warmup, this agent's findings should reference that rather than re-deriving the same root cause independently.
 - Should consume findings from the Data Pipeline Agent when relevant — e.g. NaN losses caused by a corrupted sample (NaN in input data) should be attributed there, not treated as a pure optimization issue.
 - Works best with per-step granularity; if only per-epoch logs are available, findings should note reduced confidence/precision on exact failure localization.
-- Findings here are prime input for the Explainer/Root-Cause Agent, since instability symptoms often have a clear causal chain worth narrating (bad config → gradient spike → NaN).
+- Findings here are prime input for the primary Work Agent, since instability symptoms often have a clear causal chain worth narrating (bad config → gradient spike → NaN).
 
 ## Non-Goals
 - Does not modify the training loop or apply fixes automatically (e.g. doesn't insert gradient clipping itself) — flags and suggests only
-- Does not evaluate model architecture design choices in general (that overlaps with Overfitting/Underfitting Agent territory) — focuses specifically on numerical/optimization stability
+- Does not evaluate model architecture design choices in general (that overlaps with the primary Work Agent's broader diagnostic scope) — focuses specifically on numerical/optimization stability
 

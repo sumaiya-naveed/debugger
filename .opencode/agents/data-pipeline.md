@@ -8,7 +8,7 @@ permissions:
     effect: deny
   - action: shell
     resource: "*"
-    effect: ask
+    effect: deny
   - action: read
     resource: "*"
     effect: allow
@@ -24,6 +24,9 @@ permissions:
 
 ## Purpose
 Inspect the dataset and dataloader — before or during training — to catch data-level problems that silently hurt model quality or cause misleading metrics, as opposed to code-level crashes. Most "the model just isn't learning" complaints trace back here, not to the model architecture.
+
+## Config
+- `steps` is this agent's investigation step budget for the diagnostic sweep.
 
 ## Inputs
 - Train/val/test dataset objects or file paths (CSV, image folders, tensors, etc.)
@@ -66,13 +69,38 @@ Inspect the dataset and dataloader — before or during training — to catch da
 - Augmentations accidentally applied to the validation/test loader
 - Sampler misconfiguration (e.g. `WeightedRandomSampler` weights not matching class frequencies)
 
+## Outputs
+```json
+{
+  "findings": [
+    {
+      "severity": "high | medium | low",
+      "category": "label_leakage | class_imbalance | normalization | train_test_shift | split_overlap | corrupted_sample | dataloader_issue",
+      "location": "Dataset, split, or preprocessing step where the issue was detected",
+      "first_observed_at": "split | preprocessing | training_step",
+      "message": "Human-readable description of the issue",
+      "evidence": "Supporting statistics or overlap counts",
+      "expected": "...",
+      "actual": "...",
+      "suggested_fix": "...",
+      "rationale": "Why this matters"
+    }
+  ],
+  "summary": "1-2 sentence overall verdict"
+}
+```
+
 ## Example Finding
 ```json
 {
   "severity": "high",
-  "category": "split_integrity",
+  "category": "split_overlap",
+  "location": "train/test split",
+  "first_observed_at": "split",
   "message": "142 rows appear in both the train and test sets (exact duplicates on all feature columns).",
   "evidence": "Row hash overlap: 142/5000 test rows (2.8%) also present in train set.",
+  "expected": "Zero row-level overlap between train and test splits",
+  "actual": "142 overlapping rows (2.8% of test set)",
   "suggested_fix": "Deduplicate before splitting, or re-split ensuring no row-level overlap between train and test.",
   "rationale": "Overlapping rows inflate test accuracy and mask real generalization performance."
 }
@@ -80,11 +108,11 @@ Inspect the dataset and dataloader — before or during training — to catch da
 
 ## Integration Notes
 - Should run early in the debugging pipeline — before the Training Instability Agent — since bad data is a common root cause of "loss won't go down" or "great train, terrible val" symptoms that would otherwise be misattributed to hyperparameters or architecture.
-- Findings on distribution mismatch or leakage should be passed as context to the Overfitting/Underfitting Agent, since they directly explain train/val gaps.
+- Findings on distribution mismatch or leakage should be passed as context to the primary Work Agent, since they directly explain train/val gaps.
 - Statistical checks (KS test, correlation, variance) should be sampled rather than run on full datasets for large-scale data, to keep this agent fast enough for pre-flight use.
 
 ## Non-Goals
 - Does not retrain or re-split the dataset automatically — flags and suggests only
-- Does not evaluate model performance (that's the Overfitting/Underfitting Agent's job)
-- Does not profile dataloader throughput/speed (that's the Performance Profiler Agent's job)
+- Does not evaluate model performance (that judgment is made by the primary Work Agent during consolidated diagnosis)
+- Does not profile dataloader throughput/speed (out of scope for this diagnostic agent)
 
