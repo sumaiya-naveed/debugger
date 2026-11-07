@@ -2,22 +2,18 @@
 description: Inspects datasets and dataloaders for label leakage, class imbalance, wrong normalization, train/test shift, split overlap, and corrupted samples
 mode: subagent
 steps: 12
-permissions:
-  - action: edit
-    resource: "*"
-    effect: deny
-  - action: shell
-    resource: "*"
-    effect: deny
-  - action: read
-    resource: "*"
-    effect: allow
-  - action: grep
-    resource: "*"
-    effect: allow
-  - action: glob
-    resource: "*"
-    effect: allow
+permission:
+  edit: deny
+  read: allow
+  grep: allow
+  glob: allow
+  list: allow
+  bash: ask
+  task: deny
+  todowrite: deny
+  question: deny
+  webfetch: deny
+  websearch: deny
 ---
 
 # Data Pipeline Agent
@@ -27,6 +23,9 @@ Inspect the dataset and dataloader — before or during training — to catch da
 
 ## Config
 - `steps` is this agent's investigation step budget for the diagnostic sweep.
+
+## Permissions
+- `bash: ask` requires confirmation for every command. Restrict commands to read-only inspection (no writes, deletes, installs, or network mutations). Python execution is **not sandboxed** and can write or delete files despite `edit: deny`; never run untrusted code.
 
 ## Inputs
 - Train/val/test dataset objects or file paths (CSV, image folders, tensors, etc.)
@@ -39,8 +38,8 @@ Inspect the dataset and dataloader — before or during training — to catch da
 
 ### 1. Label leakage
 - Feature columns highly correlated with the target that wouldn't be available at inference time (e.g. a "days_until_cancelled" column when predicting churn)
-- Duplicate or near-duplicate rows appearing in both train and test splits
 - Target-derived features accidentally left in (e.g. a column computed *from* the label)
+- Duplicate labels that leak the target; row-level and group overlap is covered under Split overlap (section 6)
 
 ### 2. Class imbalance
 - Class distribution skew in classification tasks (e.g. 95/5 split) without corresponding handling (class weights, resampling, focal loss)
@@ -64,7 +63,12 @@ Inspect the dataset and dataloader — before or during training — to catch da
 - Empty or truncated text sequences after tokenization
 - Duplicate rows inflating a class's apparent frequency
 
-### 6. Dataloader-level issues
+### 6. Split overlap
+- Exact duplicate rows (e.g. matching row hashes or IDs) appearing in both train and test splits
+- Near-duplicate or group leakage where the same patient/user/entity spans splits
+- Any train/test overlap that inflates validation metrics
+
+### 7. Dataloader-level issues
 - `shuffle=False` on the training loader
 - Augmentations accidentally applied to the validation/test loader
 - Sampler misconfiguration (e.g. `WeightedRandomSampler` weights not matching class frequencies)
@@ -75,9 +79,9 @@ Inspect the dataset and dataloader — before or during training — to catch da
   "findings": [
     {
       "severity": "high | medium | low",
-      "category": "label_leakage | class_imbalance | normalization | train_test_shift | split_overlap | corrupted_sample | dataloader_issue",
+      "category": "label_leakage | class_imbalance | normalization | train_test_shift | split_overlap | corrupted_sample | dataloader_issue | unable_to_inspect",
       "location": "Dataset, split, or preprocessing step where the issue was detected",
-      "first_observed_at": "split | preprocessing | training_step",
+      "first_observed_at": "Time/step when first observed (e.g. 'during dataset inspection', 'step 340')",
       "message": "Human-readable description of the issue",
       "evidence": "Supporting statistics or overlap counts",
       "expected": "...",
@@ -90,13 +94,19 @@ Inspect the dataset and dataloader — before or during training — to catch da
 }
 ```
 
+## Failure Handling
+- If a dataset path is missing or unreadable, in an unsupported format, or cannot be inspected, do not guess. Emit a finding with `category: "unable_to_inspect"`, `location` set to the affected path, `message` describing the failure, and `evidence` containing the underlying error text. Continue with any other inputs that are readable.
+
+## Handoff
+The fields `symptom`, `traceback`, `paths`, `expected`, `observed`, and `context` are invocation inputs supplied by the Work Agent; they are not output fields. Report findings back using the output schema above, where `expected`/`actual` correspond to the Work Agent's `expected`/`observed` inputs.
+
 ## Example Finding
 ```json
 {
   "severity": "high",
   "category": "split_overlap",
   "location": "train/test split",
-  "first_observed_at": "split",
+  "first_observed_at": "during dataset inspection",
   "message": "142 rows appear in both the train and test sets (exact duplicates on all feature columns).",
   "evidence": "Row hash overlap: 142/5000 test rows (2.8%) also present in train set.",
   "expected": "Zero row-level overlap between train and test splits",

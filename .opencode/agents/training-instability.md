@@ -2,19 +2,33 @@
 description: Analyzes loss curves, gradients, and activation stats for NaN/Inf, exploding/vanishing gradients, dead ReLUs, plateaus, and oscillation, and suggests fixes
 mode: subagent
 steps: 10
-permissions:
-  - action: edit
-    resource: "*"
-    effect: deny
-  - action: shell
-    resource: "*"
-    effect: deny
+permission:
+  edit: deny
+  bash:
+    "*": deny
+    "tail *": ask
+    "head *": ask
+    "cat *": ask
+    "grep *": ask
+    "awk *": ask
+    "sed *": ask
+    "wc *": ask
+    "journalctl *": ask
+  read: allow
+  grep: allow
+  glob: allow
+  list: allow
+  task: deny
+  todowrite: deny
+  question: deny
+  webfetch: deny
+  websearch: deny
 ---
 
 # Training Instability Agent
 
 ## Purpose
-Monitor a training run in progress (or a completed run's logs) for signs of numerical or optimization instability, and connect symptoms to likely causes and concrete fixes. This is the agent that answers "why did my loss become NaN at step 340?" or "why is my loss stuck at the same value for 10 epochs?"
+Analyze a training run — in progress or completed — from supplied logs or log paths for signs of numerical or optimization instability, and connect symptoms to likely causes and concrete fixes. Live log reads require shell confirmation. This is the agent that answers "why did my loss become NaN at step 340?" or "why is my loss stuck at the same value for 10 epochs?"
 
 ## Config
 - `steps` is this agent's investigation step budget for the diagnostic sweep.
@@ -33,10 +47,14 @@ Monitor a training run in progress (or a completed run's logs) for signs of nume
   "findings": [
     {
       "severity": "high | medium | low",
-      "category": "nan_inf | exploding_gradient | vanishing_gradient | dead_relu | loss_plateau | oscillation",
-      "first_observed_at": "step or epoch",
+      "category": "nan_inf | exploding_gradient | vanishing_gradient | dead_relu | loss_plateau | oscillation | lr_schedule",
+      "confidence": "high | medium | low",
+      "location": "Layer, parameter group, or log signal where the issue was detected",
+      "first_observed_at": "Time/step when first observed (e.g. 'step 340', 'epoch 2')",
       "message": "Human-readable description of the issue",
       "evidence": "Supporting stats (e.g. gradient norm progression)",
+      "expected": "...",
+      "actual": "...",
       "suggested_fix": "...",
       "rationale": "Why this matters"
     }
@@ -71,14 +89,24 @@ Monitor a training run in progress (or a completed run's logs) for signs of nume
 - Loss oscillating with increasing amplitude rather than smoothly decreasing — often an LR-too-high symptom distinct from a clean explosion
 - Validation loss diverging from train loss in a jagged, non-monotonic way suggesting batch size or normalization issues rather than plain overfitting
 
+## Failure Handling
+- If gradient norms or activation statistics are absent, fall back to loss-curve-only analysis and mark those findings as reduced confidence. Do not invent gradient or activation values; note which signals were unavailable in `evidence`.
+
+## Handoff
+The fields `symptom`, `traceback`, `paths`, `expected`, `observed`, and `context` are invocation inputs supplied by the Work Agent; they are not output fields. Report findings back using the output schema above, where `expected`/`actual` correspond to the Work Agent's `expected`/`observed` inputs.
+
 ## Example Finding
 ```json
 {
   "severity": "high",
   "category": "exploding_gradient",
+  "confidence": "high",
+  "location": "optimizer / all parameter groups",
   "first_observed_at": "step 340",
   "message": "Gradient norm grew from ~2.1 to ~890 over 15 steps before loss became NaN at step 340.",
   "evidence": "Gradient norm progression: step 325: 2.1, step 330: 14.6, step 335: 205.3, step 340: NaN",
+  "expected": "Gradient norm stays bounded and loss decreases smoothly",
+  "actual": "Gradient norm grew exponentially and loss became NaN at step 340",
   "suggested_fix": "Add gradient clipping (e.g. clip_grad_norm_ with max_norm=1.0) and consider reducing LR from 0.01 to 0.001.",
   "rationale": "The exponential growth pattern over just 15 steps is characteristic of unclipped gradients compounding, not a data anomaly at a single step."
 }
@@ -87,6 +115,7 @@ Monitor a training run in progress (or a completed run's logs) for signs of nume
 ## Integration Notes
 - Should consume findings from the primary Work Agent as context — if that agent already flagged a too-high LR or missing warmup, this agent's findings should reference that rather than re-deriving the same root cause independently.
 - Should consume findings from the Data Pipeline Agent when relevant — e.g. NaN losses caused by a corrupted sample (NaN in input data) should be attributed there, not treated as a pure optimization issue.
+- Should consume findings from the Shape/Dtype Agent when NaNs or instability are caused by dtype, device, or AMP mismatches, rather than attributing them to optimization alone.
 - Works best with per-step granularity; if only per-epoch logs are available, findings should note reduced confidence/precision on exact failure localization.
 - Findings here are prime input for the primary Work Agent, since instability symptoms often have a clear causal chain worth narrating (bad config → gradient spike → NaN).
 
