@@ -19,7 +19,7 @@ description: "Detects missing Python packages and version mismatches (ModuleNotF
 - `Environment`: pip/conda, OS details if relevant
 
 ## Workflow
-1. Confirm the interpreter: `which python`, `python -V`, `python -m pip -V`.
+1. Confirm the interpreter: `command -v python3 || command -v python`, then use the resolved executable consistently (e.g. `python -V`, `python -m pip -V`).
 2. Reproduce the import and capture the exact exception, including the full traceback.
 3. Check the installed version: `python -m pip show <pkg>` or `conda list <pkg>`.
 4. Read the declared requirement from requirements.txt, pyproject.toml, or environment.yml.
@@ -59,7 +59,7 @@ python -m pip install "numpy==1.24.0"   # only after confirming the declared req
 
 Sample output table:
 
-| package | required | installed | status | fix |
-|---|---|---|---|---|
-| numpy | 1.24.0 | 1.26.4 | mismatched | `python -m pip install "numpy==1.24.0"` |
-| torch | 2.1.0 | 2.2.1 | conflict | `pip check` reports `torchvision` needs `torch<2.2`; `python -m pip install "torch==2.1.0"` |
+| package | required | installed | status | source | fix |
+|---|---|---|---|---|---|
+| numpy | 1.24.0 | 1.26.4 | mismatched | requirements.txt | `python -m pip install "numpy==1.24.0"` |
+| torch | 2.1.0 | 2.2.1 | conflict | `pip check` output (`torchvision` needs `torch<2.2`) | `python -m pip install "torch==2.1.0"` |

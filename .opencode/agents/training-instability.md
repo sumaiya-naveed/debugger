@@ -23,6 +23,8 @@ permission:
   question: deny
   webfetch: deny
   websearch: deny
+  skill: deny
+  external_directory: deny
 ---
 
 # Training Instability Agent
@@ -32,6 +34,9 @@ Analyze a training run — in progress or completed — from supplied logs or lo
 
 ## Config
 - `steps` is this agent's investigation step budget for the diagnostic sweep.
+
+## Permissions
+- `bash` is restricted to read-only log operations. Approved commands (`tail`, `head`, `cat`, `grep`, `awk`, `sed`, `wc`, `journalctl`) must not modify files (e.g. avoid `sed -i`) and should target supplied log paths; use the read/grep/glob/list tools for static log files.
 
 ## Inputs
 - Loss curve (per-step or per-epoch values, train and val if available)
@@ -47,7 +52,7 @@ Analyze a training run — in progress or completed — from supplied logs or lo
   "findings": [
     {
       "severity": "high | medium | low",
-      "category": "nan_inf | exploding_gradient | vanishing_gradient | dead_relu | loss_plateau | oscillation | lr_schedule",
+      "category": "nan_inf | exploding_gradient | vanishing_gradient | dead_relu | loss_plateau | oscillation | lr_schedule | unable_to_inspect",
       "confidence": "high | medium | low",
       "location": "Layer, parameter group, or log signal where the issue was detected",
       "first_observed_at": "Time/step when first observed (e.g. 'step 340', 'epoch 2')",
@@ -91,6 +96,7 @@ Analyze a training run — in progress or completed — from supplied logs or lo
 
 ## Failure Handling
 - If gradient norms or activation statistics are absent, fall back to loss-curve-only analysis and mark those findings as reduced confidence. Do not invent gradient or activation values; note which signals were unavailable in `evidence`.
+- If a supplied log path is missing or unreadable, emit a finding with `category: "unable_to_inspect"` containing the path and underlying error, and continue with any readable inputs.
 
 ## Handoff
 The fields `symptom`, `traceback`, `paths`, `expected`, `observed`, and `context` are invocation inputs supplied by the Work Agent; they are not output fields. Report findings back using the output schema above, where `expected`/`actual` correspond to the Work Agent's `expected`/`observed` inputs.

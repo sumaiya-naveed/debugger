@@ -19,8 +19,8 @@ description: "Diagnoses NumPy np.save/np.load/np.savez serialization failures (t
 - `Context`: storage scenario (disk/transfer/storage)
 
 ## Workflow
-1. Before saving, inspect `print(array.dtype, array.shape)` so the serialized array has the expected dtype and shape.
-2. Extract the exact error message and the NumPy call that raised it.
+1. Extract the exact error message and the NumPy call that raised it.
+2. If no error is present (prevention), inspect `print(array.dtype, array.shape)` so the serialized array has the expected dtype and shape.
 3. Match the error to a cause using the table below.
 4. Recommend the matching fix and verify the filename passed to `np.load` matches what `np.save` wrote.
 5. Provide a minimal save/load snippet for the chosen format.
@@ -42,7 +42,7 @@ description: "Diagnoses NumPy np.save/np.load/np.savez serialization failures (t
 - `allow_pickle=True` can execute arbitrary code from untrusted files. Default to `allow_pickle=False` and only enable it for files you trust.
 
 ## Output
-- **table**: error → cause → code change
+- **table**: error → cause → code change; see the Error/Cause/Fix Table for the canonical mapping, e.g. `FileNotFoundError` on load → wrong filename (e.g. double `.npy`) → pass the exact path written by `np.save`.
 - **method**: `np.save` for `.npy`; `np.savez` for `.npz`; `np.load` for both
 - **snippet**: save/load pattern demonstration
 

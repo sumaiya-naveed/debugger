@@ -14,6 +14,8 @@ permission:
   question: deny
   webfetch: deny
   websearch: deny
+  skill: deny
+  external_directory: deny
 ---
 
 # Data Pipeline Agent
@@ -25,7 +27,7 @@ Inspect the dataset and dataloader — before or during training — to catch da
 - `steps` is this agent's investigation step budget for the diagnostic sweep.
 
 ## Permissions
-- `bash: ask` requires confirmation for every command. Restrict commands to read-only inspection (no writes, deletes, installs, or network mutations). Python execution is **not sandboxed** and can write or delete files despite `edit: deny`; never run untrusted code.
+- `bash: ask` requires confirmation for every command; user approval is the only guard. Restrict commands to read-only inspection (no writes, deletes, installs, or network mutations). Python execution is **not sandboxed** and can write or delete files despite `edit: deny`; never run untrusted code.
 
 ## Inputs
 - Train/val/test dataset objects or file paths (CSV, image folders, tensors, etc.)
@@ -117,7 +119,7 @@ The fields `symptom`, `traceback`, `paths`, `expected`, `observed`, and `context
 ```
 
 ## Integration Notes
-- Should run early in the debugging pipeline — before the Training Instability Agent — since bad data is a common root cause of "loss won't go down" or "great train, terrible val" symptoms that would otherwise be misattributed to hyperparameters or architecture.
+- Running early in the debugging pipeline — before the Training Instability Agent — is recommended when bad data may be the root cause, since bad data is a common cause of "loss won't go down" or "great train, terrible val" symptoms that would otherwise be misattributed to hyperparameters or architecture.
 - Findings on distribution mismatch or leakage should be passed as context to the primary Work Agent, since they directly explain train/val gaps.
 - Statistical checks (KS test, correlation, variance) should be sampled rather than run on full datasets for large-scale data, to keep this agent fast enough for pre-flight use.
 

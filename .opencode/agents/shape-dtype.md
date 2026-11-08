@@ -14,6 +14,8 @@ permission:
   question: deny
   webfetch: deny
   websearch: deny
+  skill: deny
+  external_directory: deny
 ---
 
 # Shape/Dtype Agent
@@ -25,7 +27,7 @@ Trace tensors as they flow through the model — either statically (from code/gr
 - `steps` is this agent's investigation step budget for the diagnostic sweep.
 
 ## Permissions
-- `bash: ask` requires confirmation for every command. Run only trusted tracing code; dynamic tracing runs Python, which is **not sandboxed** and can write or delete files despite `edit: deny`. Confirm the code is trusted before running a forward pass, and do not run arbitrary or untrusted scripts.
+- `bash: ask` requires confirmation for every command; user approval is the only guard, and only pre-approved read-only tracer commands may run. Run only trusted tracing code; dynamic tracing runs Python, which is **not sandboxed** and can write or delete files despite `edit: deny`. Do not run arbitrary or untrusted scripts or commands.
 
 ## Inputs
 - Model definition (PyTorch `nn.Module`, TF/Keras model, or equivalent)
@@ -39,7 +41,7 @@ Trace tensors as they flow through the model — either statically (from code/gr
   "findings": [
     {
       "severity": "high | medium | low",
-      "category": "shape_mismatch | dtype_mismatch | device_mismatch | silent_broadcast | dimension_order",
+      "category": "shape_mismatch | dtype_mismatch | device_mismatch | silent_broadcast | dimension_order | unable_to_inspect",
       "location": "Layer/module name or line reference",
       "first_observed_at": "Time/step when first observed (e.g. 'first forward pass', 'step 1')",
       "message": "Human-readable description of the issue",
@@ -110,7 +112,7 @@ Dynamic mode is preferred when a representative batch is available; fall back to
 
 ## Failure Handling
 - If no representative batch is available and static inference cannot determine some shapes, return the static trace you can infer with `confidence: "low"` and list the layers that could not be resolved under `unresolved`. Do not fabricate shapes.
-- If the model cannot be parsed, the framework is unsupported, or the forward pass fails, return `confidence: "low"`, list the unresolved layers, and report the underlying error text (e.g. in `unresolved` and a finding message). Do not fabricate shapes.
+- If the model cannot be parsed, the framework is unsupported, or the forward pass fails, return `confidence: "low"`, list the unresolved layers, and emit a finding with `category: "unable_to_inspect"` carrying the underlying error text (in `unresolved` and the finding `message`). Do not fabricate shapes.
 
 ## Handoff
 The fields `symptom`, `traceback`, `paths`, `expected`, `observed`, and `context` are invocation inputs supplied by the Work Agent; they are not output fields. Report findings back using the output schema above, where `expected`/`actual` correspond to the Work Agent's `expected`/`observed` inputs.

@@ -31,21 +31,23 @@ description: "Analyzes Docker, Kubernetes, and CI/CD deployment failure logs (Cr
 - Prefer read-only diagnostics and dry runs (`--dry-run=server`) before changing a live workload.
 
 ## Output
+- **status**: error status for unparseable or insufficient input (e.g. `insufficient_log_data`)
 - **root_causes**: max 5 root causes with brief explanations
 - **fixes**: commands or configuration snippets
 - **checklist**: verify the fix
-- **healthy**: "No deployment issues detected – appears healthy."
+- **healthy**: status string used only when no issues are found; the healthy response shape is `{ "status": "healthy", "root_causes": [], "fixes": [], "checklist": [] }`.
 
 The `healthy` field is used only when no issues are found.
 
 ## Failure Handling
-- If the log is empty or unparseable, return "insufficient log data" and name the missing input.
+- If the log is empty or unparseable, set `status: "insufficient_log_data"` and name the missing input.
 - If `Platform` is missing, infer it from log markers or ask; state the assumption.
 - If `RecentChanges` is missing or irrelevant, proceed with log-only analysis and state that recent changes were unavailable.
 - If multiple platforms are present, analyze each separately and label findings by platform.
 
 ## Example
 ```yaml
+status: "error"
 error: "CrashLoopBackOff"
 log_excerpt: "Last State: Terminated  Reason: OOMKilled  Exit Code: 137"
 root_causes:
